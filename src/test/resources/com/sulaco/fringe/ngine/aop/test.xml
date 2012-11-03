@@ -1,9 +1,25 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
 	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd"
+	   xmlns:hz="http://www.hazelcast.com/schema/spring"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	   					   http://www.hazelcast.com/schema/spring      http://www.hazelcast.com/schema/spring/hazelcast-spring-2.4.xsd"
 >
 
 	
 	<bean id="testService" class="com.sulaco.fringe.TestServiceImpl" />
+	
+	<hz:hazelcast id="instance">
+		<hz:config>
+			<hz:group name="dev" password="password"/>
+			<hz:network port="5701" port-auto-increment="false">
+				<hz:join>
+					<hz:multicast enabled="false" />
+					<hz:tcp-ip enabled="true">
+						<hz:members>localhost</hz:members>
+					</hz:tcp-ip>
+				</hz:join>
+			</hz:network>
+		</hz:config>
+	</hz:hazelcast>
 	
 </beans>

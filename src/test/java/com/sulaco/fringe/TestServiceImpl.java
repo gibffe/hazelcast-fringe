@@ -8,23 +8,23 @@ import com.sulaco.fringe.ngine.partition.PartitionKeyGenerator;
 public class TestServiceImpl implements TestService {
 
 	@PartitionInvoke
-	public String getAccount(@PartitionKey Integer accountId) {
-		return "account";
+	public String getAccount1(@PartitionKey Integer accountId) {
+		return "account1";
 	}
 	
 	@PartitionInvoke
-	public String getAccount(@PartitionKey TestBean param) {
-		return "account";
+	public String getAccount2(@PartitionKey TestBean param) {
+		return "account2";
 	}
 	
 	@PartitionInvoke
-	public String getAccount1(@PartitionKey(property="param1") TestBean param) {
-		return "account";
+	public String getAccount3(@PartitionKey(property="param1") TestBean param) {
+		return "account3";
 	}
 	
 	@PartitionInvoke(keygen=CustomPartitionKeyGen.class)
-	public String getAccount2(@PartitionKey TestBean param) {
-		return "account";
+	public String getAccount4(@PartitionKey TestBean param) {
+		return "account4";
 	}
 	
 	public static class TestBean {

@@ -13,4 +13,7 @@ import com.sulaco.fringe.ngine.partition.PartitionKeyGenerator;
 public @interface PartitionInvoke {
 
 	Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
+	
+	boolean blocking() default true;
+
 }
