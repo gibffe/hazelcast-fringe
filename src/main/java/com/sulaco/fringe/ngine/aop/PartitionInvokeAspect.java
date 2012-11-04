@@ -30,9 +30,9 @@ import com.sulaco.fringe.ngine.partition.PartitionKeyGenerator;
 @SuppressWarnings("all")
 public class PartitionInvokeAspect {
 
-	@Autowired HazelcastInstance hazelcast;
+	protected HazelcastInstance hazelcast;
 	
-	private ConcurrentMap<String, PartitionKeyTrace> traces = new ConcurrentHashMap<>();
+	protected ConcurrentMap<String, PartitionKeyTrace> traces = new ConcurrentHashMap<>();
 	
 	@Around("PartitionInvokeAspect.partitionInvocationPointcut(pi)")
 	public Object partitionInvocation(ProceedingJoinPoint pjp, PartitionInvoke pi) throws Throwable {
@@ -45,7 +45,9 @@ public class PartitionInvokeAspect {
 			// generate partition key
 			Integer partitionKey = generatePartitionKey(pjp, trace, pi);
 			
-			// determine if that is going to be a local or distributed invocation
+			// determine if that is going to be a local or distributed invocation; for incoming distributed 
+			// invocation that has to resolve to local, otherwise infinite ping-pong between nodes ;)
+			//
 			Partition partition = hazelcast.getPartitionService().getPartition(partitionKey);
 			Member local = hazelcast.getCluster().getLocalMember();
 			if (partition.getOwner().equals(local)) {
@@ -90,7 +92,7 @@ public class PartitionInvokeAspect {
 		return keygen.generate(pkarg);
 	}
 	
-	private PartitionKeyTrace getPartitionKeyTrace(MethodSignature signature) {
+	protected PartitionKeyTrace getPartitionKeyTrace(MethodSignature signature) {
 		// inspect cached traces first
 		PartitionKeyTrace trace = traces.get(signature.getMethod().toString());
 		if (trace == null) {
@@ -132,6 +134,10 @@ public class PartitionInvokeAspect {
 		
 	}
 	
+	public void setHazelcast(HazelcastInstance hazelcast) {
+		this.hazelcast = hazelcast;
+	}
+
 	private static final ILogger log = Logger.getLogger("jdk");
 	
 	private class PartitionKeyTrace {

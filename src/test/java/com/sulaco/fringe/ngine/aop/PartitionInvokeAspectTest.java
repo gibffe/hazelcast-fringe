@@ -2,10 +2,15 @@ package com.sulaco.fringe.ngine.aop;
 
 
 import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.JoinPoint.StaticPart;
+import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.aspectj.lang.reflect.SourceLocation;
 import org.aspectj.runtime.internal.AroundClosure;
@@ -18,6 +23,11 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.hazelcast.core.Cluster;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.Member;
+import com.hazelcast.partition.Partition;
+import com.hazelcast.partition.PartitionService;
 import com.sulaco.fringe.TestService;
 import com.sulaco.fringe.annotation.PartitionInvoke;
 
@@ -33,7 +43,7 @@ public class PartitionInvokeAspectTest {
 	@Autowired PartitionInvokeAspect aspect;
 	
 	@Test
-	public void test_getAccount1() throws Throwable {
+	public void testLocalInvocation() throws Throwable {
 		
 		Method method = service.getClass().getMethod("getAccount1", Integer.class);
 		
@@ -41,6 +51,66 @@ public class PartitionInvokeAspectTest {
 		PartitionInvoke pi =  method.getAnnotation(PartitionInvoke.class);
 		
 		// & create a nasty ProceedingJoinPoint mock 
+		ProceedingJoinPoint mockJoinPoint = mockJoinPoint(method, new Object[]{new Integer(1)});
+		
+		// & create a nasty Hazelcast mock simulating local partition invocation
+		Member local = mock(Member.class);
+		HazelcastInstance mockHazelcast = mockHazelcast(local, local);
+		
+		
+		aspect.setHazelcast(mockHazelcast);
+		
+		String result = (String) aspect.partitionInvocation(mockJoinPoint, pi);
+		verify(mockJoinPoint).proceed();
+	}
+	
+	@Test
+	public void testRemoteInvocation() throws Throwable {
+		
+		Method method = service.getClass().getMethod("getAccount1", Integer.class);
+		
+		// get declared annotation
+		PartitionInvoke pi =  method.getAnnotation(PartitionInvoke.class);
+		
+		// & create a nasty ProceedingJoinPoint mock 
+		ProceedingJoinPoint mockJoinPoint = mockJoinPoint(method, new Object[]{new Integer(1)});
+		
+		// & create a nasty Hazelcast mock simulating local partition invocation
+		Member local  = mock(Member.class);
+		Member remote = mock(Member.class);
+		HazelcastInstance mockHazelcast = mockHazelcast(local, remote);
+		
+		
+		aspect.setHazelcast(mockHazelcast);
+		
+		String result = (String) aspect.partitionInvocation(mockJoinPoint, pi);
+		verify(mockHazelcast).getExecutorService();
+	}
+	
+	
+	
+	private HazelcastInstance mockHazelcast(Member local, Member partitionOwner) {
+		Cluster mockCluster = mock(Cluster.class);
+		when(mockCluster.getLocalMember()).thenReturn(local);
+		
+		Partition mockPartition = mock(Partition.class);
+		when(mockPartition.getOwner()).thenReturn(partitionOwner);
+		
+		PartitionService mockPartitionService = mock(PartitionService.class);
+		when(mockPartitionService.getPartition(anyObject())).thenReturn(mockPartition);
+
+		ExecutorService mockExe = mock(ExecutorService.class);
+		when(mockExe.submit(any(Callable.class))).thenReturn(mock(Future.class));
+		
+		HazelcastInstance mockHazelcast = mock(HazelcastInstance.class);
+		when(mockHazelcast.getCluster()).thenReturn(mockCluster);
+		when(mockHazelcast.getPartitionService()).thenReturn(mockPartitionService);
+		when(mockHazelcast.getExecutorService()).thenReturn(mockExe);
+		
+		return mockHazelcast;
+	}
+	
+	private ProceedingJoinPoint mockJoinPoint(Method method, Object[] args) throws Throwable {
 		MethodSignature mockSignature = mock(MethodSignature.class);
 		when(mockSignature.getMethod()).thenReturn(method);
 		when(mockSignature.getName()).thenReturn(method.getName());
@@ -52,13 +122,10 @@ public class PartitionInvokeAspectTest {
 		
 		ProceedingJoinPoint mockPjp = mock(ProceedingJoinPoint.class);
 		when(mockPjp.getStaticPart()).thenReturn(mockStaticPart);
-		when(mockPjp.getArgs()).thenReturn(new Object[]{new Integer(1)});
-
-		String result = (String) aspect.partitionInvocation(mockPjp, pi);
-		assertEquals("account1", result);
+		when(mockPjp.getArgs()).thenReturn(args);
+		
+		return mockPjp;
 	}
-	
-
 	
 	public static void main(String[] args) {
 		ApplicationContext ctx = new ClassPathXmlApplicationContext("/com/sulaco/fringe/ngine/aop/aop-auto.xml");
