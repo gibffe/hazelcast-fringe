@@ -30,6 +30,7 @@ import com.hazelcast.partition.Partition;
 import com.hazelcast.partition.PartitionService;
 import com.sulaco.fringe.TestService;
 import com.sulaco.fringe.annotation.PartitionInvoke;
+import com.sulaco.fringe.ngine.aop.PartitionInvokeAspect.PartitionKeyTrace;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -87,6 +88,26 @@ public class PartitionInvokeAspectTest {
 		verify(mockHazelcast).getExecutorService();
 	}
 	
+	@Test
+	public void testGetPartitionKeyTrace() throws Throwable {
+		
+		Method method = service.getClass().getMethod("getAccount2", Integer.class, Integer.class, Integer.class);
+		MethodSignature mockSignature = mockMethodSignature(method);
+		
+		PartitionKeyTrace trace = aspect.getPartitionKeyTrace(mockSignature);
+		assertNotNull(trace);
+		assertNotNull(trace.getPk());
+		assertEquals(1, trace.getPidx());
+		
+		
+		method = service.getClass().getMethod("getAccount1", Integer.class);
+		mockSignature = mockMethodSignature(method);
+		
+		trace = aspect.getPartitionKeyTrace(mockSignature);
+		assertNotNull(trace);
+		assertNotNull(trace.getPk());
+		assertEquals(0, trace.getPidx());
+	}
 	
 	
 	private HazelcastInstance mockHazelcast(Member local, Member partitionOwner) {
@@ -111,12 +132,8 @@ public class PartitionInvokeAspectTest {
 	}
 	
 	private ProceedingJoinPoint mockJoinPoint(Method method, Object[] args) throws Throwable {
-		MethodSignature mockSignature = mock(MethodSignature.class);
-		when(mockSignature.getMethod()).thenReturn(method);
-		when(mockSignature.getName()).thenReturn(method.getName());
-		when(mockSignature.getDeclaringTypeName()).thenReturn(method.getDeclaringClass().getName());
-		when(mockSignature.getParameterTypes()).thenReturn(method.getParameterTypes());
-		
+		MethodSignature mockSignature = mockMethodSignature(method);
+				
 		StaticPart mockStaticPart = mock(StaticPart.class);
 		when(mockStaticPart.getSignature()).thenReturn(mockSignature);
 		
@@ -125,6 +142,17 @@ public class PartitionInvokeAspectTest {
 		when(mockPjp.getArgs()).thenReturn(args);
 		
 		return mockPjp;
+	}
+	
+	private MethodSignature mockMethodSignature(Method method) {
+		MethodSignature mockSignature = mock(MethodSignature.class);
+		
+		when(mockSignature.getMethod()).thenReturn(method);
+		when(mockSignature.getName()).thenReturn(method.getName());
+		when(mockSignature.getDeclaringTypeName()).thenReturn(method.getDeclaringClass().getName());
+		when(mockSignature.getParameterTypes()).thenReturn(method.getParameterTypes());
+		
+		return mockSignature;
 	}
 	
 	public static void main(String[] args) {

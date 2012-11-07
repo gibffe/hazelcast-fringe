@@ -46,7 +46,8 @@ public class PartitionInvokeAspect {
 			Integer partitionKey = generatePartitionKey(pjp, trace, pi);
 			
 			// determine if that is going to be a local or distributed invocation; for incoming distributed 
-			// invocation that has to resolve to local, otherwise infinite ping-pong between nodes ;)
+			// invocation from fringe event it has to resolve to local, otherwise infinite ping-pong 
+			// between universes will unfold ;)
 			//
 			Partition partition = hazelcast.getPartitionService().getPartition(partitionKey);
 			Member local = hazelcast.getCluster().getLocalMember();
@@ -140,7 +141,7 @@ public class PartitionInvokeAspect {
 
 	private static final ILogger log = Logger.getLogger("jdk");
 	
-	private class PartitionKeyTrace {
+	public static class PartitionKeyTrace {
 		private PartitionKey pk;
 		private int pidx;
 		

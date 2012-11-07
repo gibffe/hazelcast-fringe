@@ -8,6 +8,14 @@ public class PartitionKeyArgument {
 
 	private Object target;
 
+	public PartitionKeyArgument() {
+		
+	}
+	
+	public PartitionKeyArgument(Object target) {
+		this.target = target;
+	}
+	
 	public PartitionKeyArgument(Object target, String parameter) {
 		
 		if (StringUtils.hasText(parameter)) {
@@ -20,6 +28,10 @@ public class PartitionKeyArgument {
 	
 	public <T> T getTarget() {
 		return (T) this.target;
+	}
+	
+	public void setTarget(Object target) {
+		this.target = target;
 	}
 	
 	@Override

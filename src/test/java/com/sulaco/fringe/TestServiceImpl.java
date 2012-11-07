@@ -12,18 +12,23 @@ public class TestServiceImpl implements TestService {
 		return "account1";
 	}
 	
+	@Override
+	public String getAccount2(Integer a, @PartitionKey Integer b, Integer c) {
+		return "account2";
+	}	
+	
 	@PartitionInvoke
-	public String getAccount2(@PartitionKey TestBean param) {
+	public String getAccount3(@PartitionKey TestBean param) {
 		return "account2";
 	}
 	
 	@PartitionInvoke
-	public String getAccount3(@PartitionKey(property="param1") TestBean param) {
+	public String getAccount4(@PartitionKey(property="param1") TestBean param) {
 		return "account3";
 	}
 	
 	@PartitionInvoke(keygen=CustomPartitionKeyGen.class)
-	public String getAccount4(@PartitionKey TestBean param) {
+	public String getAccount5(@PartitionKey TestBean param) {
 		return "account4";
 	}
 	
@@ -53,4 +58,5 @@ public class TestServiceImpl implements TestService {
 		}
 		
 	}
+
 }
