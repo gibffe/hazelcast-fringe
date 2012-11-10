@@ -6,6 +6,7 @@
 >
 
 	<aop:aspectj-autoproxy />
+	
 	<bean class="com.sulaco.fringe.ngine.FringeContext"    	        />
 	<bean class="com.sulaco.fringe.ngine.aop.PartitionInvokeAspect" />
 	<bean class="com.sulaco.fringe.ngine.aop.MapReduceInvokeAspect" />

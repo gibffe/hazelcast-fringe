@@ -32,7 +32,7 @@ public class PartitionInvokeAspect {
 
 	protected HazelcastInstance hazelcast;
 	
-	protected ConcurrentMap<String, PartitionKeyTrace> traces = new ConcurrentHashMap<>();
+	protected ConcurrentMap<String, PartitionKeyTrace> traces = new ConcurrentHashMap<String, PartitionKeyTrace>();
 	
 	@Around("PartitionInvokeAspect.partitionInvocationPointcut(pi)")
 	public Object partitionInvocation(ProceedingJoinPoint pjp, PartitionInvoke pi) throws Throwable {
@@ -75,10 +75,7 @@ public class PartitionInvokeAspect {
 			}
 		}
 		else {
-			log.log(
-					Level.WARNING, 
-					"Hazelcast instance has not been autowired, defaulting to non-distributed execution :?"
-			);
+			log.log(Level.WARNING, "Hazelcast instance has not been autowired, defaulting to non-distributed execution :?");
 			return pjp.proceed();
 		}
 	}

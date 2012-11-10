@@ -32,7 +32,7 @@ public class CollectionMapperTest {
 		mapper.setKeygen(new HashcodeKeyGenerator());
 		mapper.setPartitionService(mockPartitionService);
 		
-		Collection<Integer> input = new ArrayList<>();
+		Collection<Integer> input = new ArrayList<Integer>();
 		for (int i = 0; i < 4; i++) {
 			input.add(i);
 		}

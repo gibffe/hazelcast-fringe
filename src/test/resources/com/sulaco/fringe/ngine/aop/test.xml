@@ -7,7 +7,7 @@
 
 	
 	<bean id="testService" class="com.sulaco.fringe.TestServiceImpl" />
-	
+	<!-- 
 	<hz:hazelcast id="instance">
 		<hz:config>
 			<hz:group name="dev" password="password"/>
@@ -21,5 +21,6 @@
 			</hz:network>
 		</hz:config>
 	</hz:hazelcast>
+	-->
 	
 </beans>

@@ -48,8 +48,11 @@ public class FringeEvent implements Callable<Object>, PartitionAware<Integer>, S
 		//
 		return result;
 	}
-
 	
+	public Object[] getParamValues() {
+		return paramValues;
+	}
+
 	private static final long serialVersionUID = 8702323710846384175L;
 
 }

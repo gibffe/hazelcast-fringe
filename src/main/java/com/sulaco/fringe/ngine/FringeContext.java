@@ -12,7 +12,7 @@ public class FringeContext implements ApplicationContextAware {
 
 	private static ApplicationContext ctx = null;
 	
-	private static ConcurrentMap<String, Method> methodCache = new ConcurrentHashMap<>();
+	private static ConcurrentMap<String, Method> methodCache = new ConcurrentHashMap<String, Method>();
 	
 	@Override
 	public void setApplicationContext(ApplicationContext ctx) throws BeansException {

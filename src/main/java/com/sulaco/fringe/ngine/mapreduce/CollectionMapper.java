@@ -16,7 +16,7 @@ public class CollectionMapper implements PartitionMapper {
 	
 	protected PartitionKeyGenerator keygen;
 	
-	protected Map<Integer, Collection> splits = new HashMap<>();
+	protected Map<Integer, Collection> splits = new HashMap<Integer, Collection>();
 	
 	public CollectionMapper() {
 		super();
@@ -34,7 +34,7 @@ public class CollectionMapper implements PartitionMapper {
 		Integer key, partitionId;
 		PartitionKeyArgument arg = new PartitionKeyArgument();
 		
-		// split incoming collection by partition key
+		// split incoming collection by partition id it belongs to
 		//
 		if (input != null) {
 			for (Object element : input) {
@@ -44,14 +44,20 @@ public class CollectionMapper implements PartitionMapper {
 				partitionId = partitionService.getPartition(key).getPartitionId();
 				
 				// update split for this partition key
-				if (!splits.containsKey(key)) {
-					splits.put(partitionId, new ArrayList<>());
+				if (!splits.containsKey(partitionId)) {
+					splits.put(partitionId, new ArrayList());
 				}
 				splits.get(partitionId).add(element);
 			}
 		}
 		//
 		return this.splits;
+	}
+	
+	@Override
+	public Integer getPartitionKey(Object object) {
+		PartitionKeyArgument arg = new PartitionKeyArgument(object);
+		return keygen.generate(arg);
 	}
 
 	public void setKeygen(PartitionKeyGenerator keygen) {

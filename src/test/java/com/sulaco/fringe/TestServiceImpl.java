@@ -1,7 +1,11 @@
 package com.sulaco.fringe;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
 import com.sulaco.fringe.annotation.PartitionInvoke;
 import com.sulaco.fringe.annotation.PartitionKey;
+import com.sulaco.fringe.annotation.PartitionMapReduce;
 import com.sulaco.fringe.ngine.partition.PartitionKeyArgument;
 import com.sulaco.fringe.ngine.partition.PartitionKeyGenerator;
 
@@ -32,6 +36,11 @@ public class TestServiceImpl implements TestService {
 		return "account4";
 	}
 	
+	@PartitionMapReduce
+	public Collection<Integer> processCollection(@PartitionKey Collection<Integer> input) {
+		return input;
+	}
+
 	public static class TestBean {
 		private String param1;
 		private String param2;
