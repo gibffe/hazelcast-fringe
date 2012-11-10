@@ -3,6 +3,75 @@ hazelcast-fringe
 
 Java method level annotations enabling affinity based execution on top of hazelcast cluster and spring framework.
 
-<b>test</b>
+Examples:
+---------
 
-[code] code [/code]
+Invokes test method on a hazelcast partition. Hashcode of parameter annotated with @PartitionKey will be used as partition key.
+
+    @PartitionInvoke
+    public String testMethod(..., @PartitionKey Integer argument, ...)
+
+Same as above, but uses a member variable (getter must exist) of selected argument as partition key.
+
+    @PartitionInvoke
+    public String testMethod(..., @PartitionKey(property="param1") SomeType argument, ...)
+
+Invokes test method on a hazelcast partition. Using custom key generator to come up with partition key from argument annotated with @PartitionKey.
+
+    @PartitionInvoke(keygen=CustomPartitionKeyGen.class)
+    public String testMethod(..., @PartitionKey SomeType argument, ...)
+
+Map-reduce invocation example
+
+    @PartitionMapReduce
+    public Collection<Integer> processCollection(@PartitionKey Collection<Integer> input)
+
+
+Available annotations:
+-------------------------
+
+For partition invocation (method level)
+
+	public @interface PartitionInvoke {
+
+		Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
+		
+		boolean blocking() default true;
+
+	}
+	
+For map-reduce (method level)
+
+	public @interface PartitionMapReduce {
+
+		Class<? extends PartitionKeyGenerator> keygen()  default HashcodeKeyGenerator.class;	
+		Class<? extends PartitionMapper>       mapper()  default CollectionMapper.class;
+		Class<? extends PartitionReducer>      reducer() default CollectionReducer.class;
+
+	}
+	
+For selecting partition key (method parameter level)
+
+	public @interface PartitionKey {
+
+		String property() default "";
+	}
+	
+Installation:
+-------------
+
+Not published to maven repo yet - build from source. Once build you will need some spring wiring:
+
+	<aop:aspectj-autoproxy />
+	
+	<bean class="com.sulaco.fringe.ngine.FringeContext" />
+	
+	<bean class="com.sulaco.fringe.ngine.aop.PartitionInvokeAspect">
+		<property name="hazelcast" ref="hazelcast" />
+	</bean>
+	
+	<bean class="com.sulaco.fringe.ngine.aop.MapReduceInvokeAspect">
+		<property name="hazelcast" ref="hazelcast" />
+	</bean>
+	
+That should be it !
