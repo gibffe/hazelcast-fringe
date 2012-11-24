@@ -47,7 +47,7 @@ public class MapReduceInvokeAspectTest {
 		
 		final int N = 3; // partition count
 		
-		Method method = service.getClass().getMethod("processCollection", Collection.class);
+		Method method = Class.forName("com.sulaco.fringe.TestServiceImpl").getMethod("processCollection", Collection.class);
 		
 		// get declared annotation
 		PartitionMapReduce pmr = method.getAnnotation(PartitionMapReduce.class);

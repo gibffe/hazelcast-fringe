@@ -46,7 +46,7 @@ public class PartitionInvokeAspectTest {
 	@Test
 	public void testLocalInvocation() throws Throwable {
 		
-		Method method = service.getClass().getMethod("getAccount1", Integer.class);
+		Method method = Class.forName("com.sulaco.fringe.TestServiceImpl").getMethod("getAccount1", Integer.class);
 		
 		// get declared annotation
 		PartitionInvoke pi =  method.getAnnotation(PartitionInvoke.class);
@@ -68,7 +68,7 @@ public class PartitionInvokeAspectTest {
 	@Test
 	public void testRemoteInvocation() throws Throwable {
 		
-		Method method = service.getClass().getMethod("getAccount1", Integer.class);
+		Method method = Class.forName("com.sulaco.fringe.TestServiceImpl").getMethod("getAccount1", Integer.class);
 		
 		// get declared annotation
 		PartitionInvoke pi =  method.getAnnotation(PartitionInvoke.class);
@@ -91,7 +91,7 @@ public class PartitionInvokeAspectTest {
 	@Test
 	public void testGetPartitionKeyTrace() throws Throwable {
 		
-		Method method = service.getClass().getMethod("getAccount2", Integer.class, Integer.class, Integer.class);
+		Method method = Class.forName("com.sulaco.fringe.TestServiceImpl").getMethod("getAccount2", Integer.class, Integer.class, Integer.class);
 		MethodSignature mockSignature = mockMethodSignature(method);
 		
 		PartitionKeyTrace trace = aspect.getPartitionKeyTrace(mockSignature);
@@ -100,7 +100,7 @@ public class PartitionInvokeAspectTest {
 		assertEquals(1, trace.getPidx());
 		
 		
-		method = service.getClass().getMethod("getAccount1", Integer.class);
+		method = Class.forName("com.sulaco.fringe.TestServiceImpl").getMethod("getAccount1", Integer.class);
 		mockSignature = mockMethodSignature(method);
 		
 		trace = aspect.getPartitionKeyTrace(mockSignature);
@@ -108,7 +108,7 @@ public class PartitionInvokeAspectTest {
 		assertNotNull(trace.getPk());
 		assertEquals(0, trace.getPidx());
 	}
-	
+
 	
 	private HazelcastInstance mockHazelcast(Member local, Member partitionOwner) {
 		Cluster mockCluster = mock(Cluster.class);

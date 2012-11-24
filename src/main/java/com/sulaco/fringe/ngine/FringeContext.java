@@ -19,8 +19,8 @@ public class FringeContext implements ApplicationContextAware {
 		FringeContext.ctx = ctx;
 	}
 	
-	public static Object getBean(String className) throws BeansException, ClassNotFoundException {
-		return ctx.getBean(Class.forName(className));
+	public static <T> T getBean(String className) throws BeansException, ClassNotFoundException {
+		return (T) ctx.getBean(Class.forName(className));
 	}
 	
 	public static Method getMethod(Object target, String methodName, Class<?>[] paramTypes) {

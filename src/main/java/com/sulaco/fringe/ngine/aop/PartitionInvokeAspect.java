@@ -21,7 +21,9 @@ import com.sulaco.fringe.annotation.PartitionInvoke;
 import com.sulaco.fringe.annotation.PartitionKey;
 import com.sulaco.fringe.exception.PartitionExecutionException;
 import com.sulaco.fringe.exception.PartitionInvokeException;
+import com.sulaco.fringe.ngine.FringeContext;
 import com.sulaco.fringe.ngine.FringeEvent;
+import com.sulaco.fringe.ngine.SpringWired;
 import com.sulaco.fringe.ngine.partition.PartitionKeyArgument;
 import com.sulaco.fringe.ngine.partition.PartitionKeyGenerator;
 
@@ -80,12 +82,19 @@ public class PartitionInvokeAspect {
 		}
 	}
 	
-	private Integer generatePartitionKey(ProceedingJoinPoint pjp, PartitionKeyTrace trace, PartitionInvoke pi) throws Exception {
+	protected Integer generatePartitionKey(ProceedingJoinPoint pjp, PartitionKeyTrace trace, PartitionInvoke pi) throws Exception {
 		PartitionKeyArgument pkarg = new PartitionKeyArgument(
 						pjp.getArgs()[trace.getPidx()], // annotated param 
 						trace.getPk().property()		// optional property within param bean
 		);
-		PartitionKeyGenerator keygen = pi.keygen().newInstance();
+		
+		PartitionKeyGenerator keygen;
+		if(SpringWired.class.isAssignableFrom(pi.keygen())) {
+			keygen = FringeContext.getBean(pi.keygen().getName());
+		}
+		else {
+			keygen = pi.keygen().newInstance(); // TODO: cache instances, they should have no state anyway
+		}
 		
 		return keygen.generate(pkarg);
 	}
