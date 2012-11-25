@@ -9,21 +9,17 @@ import com.sulaco.fringe.ngine.partition.HashcodeKeyGenerator;
 import com.sulaco.fringe.ngine.partition.PartitionKeyGenerator;
 
 /**
- * Marks a method as capable of partition-aware invocation. This in conjuction with PartionKey annotated
- * parameter will be used by the underlying engine to route execution to proper partition node.
- * 
- * Keygenerator can be specified that will generate a partition key from @PartitionKey argument.
+ * Marks a class as event. Supplied keygen will produce partition key. Events will be routed 
+ * to a partition and registered subscribers will receive it asynchronously.
  * 
  * @author gibffe
  *
  */
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.METHOD})
-public @interface PartitionInvoke {
+@Target({ElementType.TYPE})
+public @interface PartitionEvent {
 
 	Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
 	
-	boolean blocking() default true;
-
 }

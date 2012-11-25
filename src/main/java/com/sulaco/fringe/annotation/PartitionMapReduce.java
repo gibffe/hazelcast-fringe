@@ -12,6 +12,13 @@ import com.sulaco.fringe.ngine.mapreduce.PartitionReducer;
 import com.sulaco.fringe.ngine.partition.HashcodeKeyGenerator;
 import com.sulaco.fringe.ngine.partition.PartitionKeyGenerator;
 
+/**
+ * Marks a method as capable of being invoked in map-reduce fashion.
+ * 
+ * @author gibffe
+ *
+ */
+
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
 public @interface PartitionMapReduce {
