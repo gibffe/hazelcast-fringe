@@ -7,7 +7,7 @@
 
 	<bean class="com.sulaco.fringe.ngine.FringeContext" />
 	
-	<bean id="bus" class="com.sulaco.fringe.ngine.bus.MessageBusImpl" init-method="init" />
+	<bean id="bus" class="com.sulaco.fringe.ngine.bus.MessageBusImpl" />
 	
 	<bean id="testBean" class="com.sulaco.fringe.ngine.bus.MessageBusImplTest.TestEventDrivenBean" />
 

@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
+import com.hazelcast.core.DistributedTask;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.Member;
 import com.hazelcast.core.Message;
@@ -25,6 +26,7 @@ import com.sulaco.fringe.annotation.PartitionEventSubscribe;
 import com.sulaco.fringe.exception.PartitionExecutionException;
 import com.sulaco.fringe.ngine.FringeContext;
 import com.sulaco.fringe.ngine.FringeEvent;
+import com.sulaco.fringe.ngine.FringeTask;
 import com.sulaco.fringe.ngine.SpringWired;
 import com.sulaco.fringe.ngine.partition.PartitionKeyArgument;
 import com.sulaco.fringe.ngine.partition.PartitionKeyGenerator;
@@ -35,25 +37,11 @@ public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 	
 	private HazelcastInstance hazelcast;
 	
-	// map of topic subscribers; each event type has a corresponding hz topic to
-	// support event broadcasting to each member node
-	private ConcurrentMap<String, MessageListener<Object>> topicListeners = new ConcurrentHashMap<String, MessageListener<Object>>();
-	
 	// global topic listener, forwarding incoming events towards subscribers
 	private EventForwardingListener eventForwardingListener = new EventForwardingListener();
 	
 	// multimap of event subscribers, keyed by event type name
 	private ConcurrentMap<String, Set<EventBusSubscriber>> subscribers = new ConcurrentHashMap<String, Set<EventBusSubscriber>>();
-	
-	public void init() {
-		// register created message listeners with corresponding hazelcast topics
-		for (Map.Entry<String, MessageListener<Object>> entry : topicListeners.entrySet()) {
-			hazelcast
-				.getTopic(entry.getKey())
-				.addMessageListener(entry.getValue())
-			;
-		}
-	}
 	
 	@Override
 	public void emit(final Object event) {
@@ -67,9 +55,7 @@ public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 				Member local = hazelcast.getCluster().getLocalMember();
 				if (partition.getOwner().equals(local)) {
 					// local
-					exe.submit(
-							new EventForwardingRunnable(event)
-					);
+					this.emitLocal(event);
 				}
 				else {
 					// distributed, fringe event
@@ -89,18 +75,38 @@ public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 			}
 		}
 		catch (Throwable ex) {
-			// emit should not escalate anything, log stuff here for later inspection
-			//
-			log.log(Level.WARNING, "Unable to emit event !", ex);
+			// emit does not escalate anything, log stuff here for later inspection
+			log.log(Level.WARNING, "Unable to emit event ! "+event != null ? event.toString() : "null", ex);
 		}
 	}
-
+	
 	@Override
-	public void broadcast(Object message) {
-		hazelcast
-			.getTopic(message.getClass().getName())
-			.publish(message)
-		;
+	public void emitLocal(Object event) {
+		exe.submit(
+				new EventForwardingRunnable(event)
+		);
+	}
+	
+	@Override
+	public void broadcast(final Object event) {
+		try {
+			FringeTask ftask = new FringeTask(
+											new FringeEvent(
+														0, 
+														this.getClass().getName(), 
+														"emitLocal", 
+														new Class<?>[]  {Object.class}, 
+														new Object  []  {event       }
+											),
+											hazelcast.getCluster().getMembers()
+			);
+			hazelcast.getExecutorService().submit(ftask);
+		}
+		catch (Throwable ex) {
+			// broadcast does not escalate anything, log stuff here for later inspection
+			log.log(Level.WARNING, "Unable to broadcast event !" + event != null ? event.toString() : "null", ex);
+			
+		}
 	}
 	
 	@Override
@@ -122,17 +128,6 @@ public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 					if (types.length == 1) {
 						typeName = m.getParameterTypes()[0].getName();
 						subscribe(bean, m, typeName);
-						
-						// register new topic listener
-						if (!topicListeners.containsKey(typeName)) {
-							synchronized(this) {
-								if (!topicListeners.containsKey(typeName)) {
-									topicListeners.put(typeName, eventForwardingListener);
-									// topic subscription will be added during this bean init method, we can't be sure
-									// hazelcast has been initialised at this point (or can we ?)
-								}
-							}
-						}
 					}
 				}
 			}
