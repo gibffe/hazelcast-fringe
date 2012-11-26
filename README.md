@@ -1,7 +1,8 @@
 hazelcast-fringe
 ================
 
-Java method level annotations enabling partition-affinity execution on top of hazelcast grid and spring framework.
+- Java method level annotations enabling partition-affinity execution on top of hazelcast grid and spring framework.
+- Simple event bus on top of Hazelcast, capable of partition-aware event routing and broadcasting to all members
 
 Examples:
 ---------
