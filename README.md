@@ -1,7 +1,10 @@
 hazelcast-fringe
 ================
 
-Java method level annotations enabling partition-affinity execution on top of hazelcast grid and spring framework.
+- Java method level annotations enabling partition-affinity execution on top of hazelcast grid and spring framework.
+  [wiki] https://github.com/gibffe/hazelcast-fringe/wiki/hazelcast-fringe
+- Simple event bus on top of Hazelcast, capable of partition-aware event routing and broadcasting to all members 
+  [wiki] https://github.com/gibffe/hazelcast-fringe/wiki/message-bus
 
 Examples:
 ---------
@@ -26,41 +29,71 @@ Map-reduce invocation example
     @PartitionMapReduce
     public Collection<Integer> processCollection(@PartitionKey Collection<Integer> input)
 
+Event-handler registration example
+
+    @PartitionEventSubscribe
+    public void handleEvent(AccountRegistered event) {
+        ...
+    }
+    
+Tagging an object as event
+
+    @PartitionEvent
+    public class AccountRegistered {
+        ...
+    }
+	
 
 Available annotations:
 -------------------------
 
 For partition invocation (method level)
 
-	public @interface PartitionInvoke {
+    public @interface PartitionInvoke {
 
-		Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
-		
-		boolean blocking() default true;
-
-	}
+        /* custom keygen helps in invocation routing */
+        Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
+        boolean blocking() default true;
+    }
 	
 For map-reduce (method level)
 
-	public @interface PartitionMapReduce {
+    public @interface PartitionMapReduce {
 
-		Class<? extends PartitionKeyGenerator> keygen()  default HashcodeKeyGenerator.class;	
-		Class<? extends PartitionMapper>       mapper()  default CollectionMapper.class;
-		Class<? extends PartitionReducer>      reducer() default CollectionReducer.class;
-
-	}
+        Class<? extends PartitionKeyGenerator> keygen()  default HashcodeKeyGenerator.class;	
+        Class<? extends PartitionMapper>       mapper()  default CollectionMapper.class;
+        Class<? extends PartitionReducer>      reducer() default CollectionReducer.class;
+    }
 	
 For selecting partition key (method parameter level)
 
-	public @interface PartitionKey {
+    public @interface PartitionKey {
+        
+        String property() default "";
+    }
+	
+For registering as event handler
 
-		String property() default "";
-	}
+
+    public @interface PartitionEventSubscribe {
+
+    }
+    
+For tagging an object as event
+
+    public @interface PartitionEvent {
+
+        /* custom keygen helps in event routing */
+        Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
+        String property() default "";
+    }
 	
 Installation:
 -------------
 
 Not published to maven repo yet - build from source. Once build you will need some spring wiring:
+
+Manual:
 
 	<aop:aspectj-autoproxy />
 	
@@ -73,5 +106,9 @@ Not published to maven repo yet - build from source. Once build you will need so
 	<bean class="com.sulaco.fringe.ngine.aop.MapReduceInvokeAspect">
 		<property name="hazelcast" ref="hazelcast" />
 	</bean>
+
+Automatic: (note, in this case hazelcast instance id has to be 'hazelcast')
+
+    <import resource="classpath:/com/sulaco/fringe/context.xml" />
 	
 That should be it !
