@@ -51,20 +51,18 @@ For partition invocation (method level)
 
     public @interface PartitionInvoke {
 
+        /* custom keygen helps in invocation routing */
         Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
-		
-            boolean blocking() default true;
-
+        boolean blocking() default true;
     }
 	
 For map-reduce (method level)
 
     public @interface PartitionMapReduce {
 
-	Class<? extends PartitionKeyGenerator> keygen()  default HashcodeKeyGenerator.class;	
-	Class<? extends PartitionMapper>       mapper()  default CollectionMapper.class;
-	Class<? extends PartitionReducer>      reducer() default CollectionReducer.class;
-
+        Class<? extends PartitionKeyGenerator> keygen()  default HashcodeKeyGenerator.class;	
+        Class<? extends PartitionMapper>       mapper()  default CollectionMapper.class;
+        Class<? extends PartitionReducer>      reducer() default CollectionReducer.class;
     }
 	
 For selecting partition key (method parameter level)
@@ -85,9 +83,9 @@ For tagging an object as event
 
     public @interface PartitionEvent {
 
-	Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
-	
-	String property() default "";
+        /* custom keygen helps in event routing */
+        Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
+        String property() default "";
     }
 	
 Installation:
