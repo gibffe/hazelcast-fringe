@@ -63,6 +63,8 @@ Installation:
 
 Not published to maven repo yet - build from source. Once build you will need some spring wiring:
 
+Manual:
+
 	<aop:aspectj-autoproxy />
 	
 	<bean class="com.sulaco.fringe.ngine.FringeContext" />
@@ -74,5 +76,9 @@ Not published to maven repo yet - build from source. Once build you will need so
 	<bean class="com.sulaco.fringe.ngine.aop.MapReduceInvokeAspect">
 		<property name="hazelcast" ref="hazelcast" />
 	</bean>
+
+Automatic: (not, in this case hazelcast instance id has to be 'hazelcast')
+
+    <import resource="classpath:/com/sulaco/fringe/context.xml" />
 	
 That should be it !
