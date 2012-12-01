@@ -77,7 +77,7 @@ Manual:
 		<property name="hazelcast" ref="hazelcast" />
 	</bean>
 
-Automatic: (not, in this case hazelcast instance id has to be 'hazelcast')
+Automatic: (note, in this case hazelcast instance id has to be 'hazelcast')
 
     <import resource="classpath:/com/sulaco/fringe/context.xml" />
 	
