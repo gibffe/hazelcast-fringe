@@ -27,6 +27,20 @@ Map-reduce invocation example
     @PartitionMapReduce
     public Collection<Integer> processCollection(@PartitionKey Collection<Integer> input)
 
+Event-handler registration example
+
+    @PartitionEventSubscribe
+    public void handleEvent(AccountRegistered event) {
+        ...
+    }
+    
+Tagging an object as event
+
+    @PartitionEvent
+    public class AccountRegistered {
+        ...
+    }
+	
 
 Available annotations:
 -------------------------
