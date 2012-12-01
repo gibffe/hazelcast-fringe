@@ -49,30 +49,46 @@ Available annotations:
 
 For partition invocation (method level)
 
-	public @interface PartitionInvoke {
+    public @interface PartitionInvoke {
 
-		Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
+        Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
 		
-		boolean blocking() default true;
+            boolean blocking() default true;
 
-	}
+    }
 	
 For map-reduce (method level)
 
-	public @interface PartitionMapReduce {
+    public @interface PartitionMapReduce {
 
-		Class<? extends PartitionKeyGenerator> keygen()  default HashcodeKeyGenerator.class;	
-		Class<? extends PartitionMapper>       mapper()  default CollectionMapper.class;
-		Class<? extends PartitionReducer>      reducer() default CollectionReducer.class;
+	Class<? extends PartitionKeyGenerator> keygen()  default HashcodeKeyGenerator.class;	
+	Class<? extends PartitionMapper>       mapper()  default CollectionMapper.class;
+	Class<? extends PartitionReducer>      reducer() default CollectionReducer.class;
 
-	}
+    }
 	
 For selecting partition key (method parameter level)
 
-	public @interface PartitionKey {
+    public @interface PartitionKey {
+        
+        String property() default "";
+    }
+	
+For registering as event handler
 
-		String property() default "";
-	}
+
+    public @interface PartitionEventSubscribe {
+
+    }
+    
+For tagging an object as event
+
+    public @interface PartitionEvent {
+
+	Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
+	
+	String property() default "";
+    }
 	
 Installation:
 -------------
