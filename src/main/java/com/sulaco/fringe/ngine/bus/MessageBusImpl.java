@@ -110,7 +110,7 @@ public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 	}
 	
 	@Override
-	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
 		// look for methods annotated with @PartitionEventSubscribe
 		Method[] methods = bean.getClass().getDeclaredMethods();
 		if (methods != null) {
@@ -136,7 +136,7 @@ public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 	}
 
 	@Override
-	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
 		return bean;
 	}
 
@@ -166,7 +166,9 @@ public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 			keygen = pe.keygen().newInstance(); // TODO: cache instances, they should have no state anyway
 		}
 		
-		return keygen.generate(new PartitionKeyArgument(message));
+		return keygen.generate(
+							new PartitionKeyArgument(message, pe.property())
+		);
 	}
 
 	

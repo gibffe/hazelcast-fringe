@@ -22,4 +22,5 @@ public @interface PartitionEvent {
 
 	Class<? extends PartitionKeyGenerator> keygen() default HashcodeKeyGenerator.class;	
 	
+	String property() default "";
 }
