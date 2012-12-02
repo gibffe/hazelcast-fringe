@@ -2,6 +2,7 @@ package com.sulaco.fringe.ngine.aop;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -51,7 +52,7 @@ public class MapReduceInvokeAspect {
 			
 			// look for PartitionKey annotation in the method signature
 			MethodSignature signature = (MethodSignature) pjp.getStaticPart().getSignature();
-			PartitionKeyTrace trace   = getPartitionKeyTrace(signature);
+			PartitionKeyTrace trace   = getPartitionKeyTrace(pjp.getTarget(), signature);
 			
 			// split input collection into subsets, each subset resolving to
 			// a grid partition it has affinity to
@@ -149,37 +150,41 @@ public class MapReduceInvokeAspect {
 		return reducer;
 	}
 	
-	protected PartitionKeyTrace getPartitionKeyTrace(MethodSignature signature) {
+	protected PartitionKeyTrace getPartitionKeyTrace(Object target, MethodSignature signature) {
 		// inspect cached traces first
 		PartitionKeyTrace trace = traces.get(signature.getMethod().toString());
 		if (trace == null) {
 			
-			Annotation[][] pann = signature.getMethod().getParameterAnnotations();
+			Method method = getTargetMethod(target, signature);
 			
-			PartitionKey pk = null;
-			int pidx = -1; // @PartitionKey annotation index
-			
-			for (int i = 0; i < pann.length; i++) {
-				if (pann[i].length > 0) {
-					for (Annotation an : pann[i]) {
-						if (an instanceof PartitionKey) {
-							// got ya bitch
-							pk = (PartitionKey) an;
-							pidx = i;
-							break;
+			if (method != null) {
+				Annotation[][] pann = signature.getMethod().getParameterAnnotations();
+				
+				PartitionKey pk = null;
+				int pidx = -1; // @PartitionKey annotation index
+				
+				for (int i = 0; i < pann.length; i++) {
+					if (pann[i].length > 0) {
+						for (Annotation an : pann[i]) {
+							if (an instanceof PartitionKey) {
+								// got ya bitch
+								pk = (PartitionKey) an;
+								pidx = i;
+								break;
+							}
 						}
 					}
+					if (pidx >= 0) break;
 				}
-				if (pidx >= 0) break;
-			}
-			
-			if (pk != null) {
-				// cache this
-				trace = new PartitionKeyTrace(pk, pidx);
-				traces.put(signature.getMethod().toString(), trace);
-			}
-			else {
-				throw new PartitionInvokeException("Unable to find @PartitionKey annotated parameter :?");	
+				
+				if (pk != null) {
+					// cache this
+					trace = new PartitionKeyTrace(pk, pidx);
+					traces.put(signature.getMethod().toString(), trace);
+				}
+				else {
+					throw new PartitionInvokeException("Unable to find @PartitionKey annotated parameter :?");	
+				}
 			}
 		}
 		//
@@ -196,6 +201,17 @@ public class MapReduceInvokeAspect {
 		}
 		//
 		return result;
+	}
+	
+	private Method getTargetMethod(Object target, MethodSignature signature) {
+		Method method = null;
+		try {
+			method = target.getClass().getMethod(signature.getName(), signature.getParameterTypes());
+		} 
+		catch (Exception ex) {
+			log.log(Level.WARNING, "Unable to find requested method !", ex);
+		} 
+		return method;
 	}
 	
 	private Object head(Collection input) {

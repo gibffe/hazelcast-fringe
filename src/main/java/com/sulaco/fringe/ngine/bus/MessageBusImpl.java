@@ -1,10 +1,10 @@
 package com.sulaco.fringe.ngine.bus;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -12,15 +12,11 @@ import java.util.logging.Level;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
-import com.hazelcast.core.DistributedTask;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.Member;
-import com.hazelcast.core.Message;
-import com.hazelcast.core.MessageListener;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.logging.Logger;
 import com.hazelcast.partition.Partition;
-import com.hazelcast.util.ConcurrentHashSet;
 import com.sulaco.fringe.annotation.PartitionEvent;
 import com.sulaco.fringe.annotation.PartitionEventSubscribe;
 import com.sulaco.fringe.exception.PartitionExecutionException;
@@ -33,15 +29,17 @@ import com.sulaco.fringe.ngine.partition.PartitionKeyGenerator;
 
 public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 
-	private ExecutorService exe = Executors.newCachedThreadPool();
+	protected ExecutorService exe = Executors.newCachedThreadPool();
 	
-	private HazelcastInstance hazelcast;
+	protected HazelcastInstance hazelcast;
 	
-	// global topic listener, forwarding incoming events towards subscribers
-	private EventForwardingListener eventForwardingListener = new EventForwardingListener();
+	// multimap of event subscriber instances, keyed by bean name - single bean can subscribe to multiple
+	// events, resulting in many EventBusSubscriber object per single bean;
+	// this map is used in bean preprocessing to replace raw instances with proxies
+	private Map<String, Set<EventBusSubscriber>> beans_index = new HashMap<String, Set<EventBusSubscriber>>();
 	
 	// multimap of event subscribers, keyed by event type name
-	private ConcurrentMap<String, Set<EventBusSubscriber>> subscribers = new ConcurrentHashMap<String, Set<EventBusSubscriber>>();
+	protected Map<String, Set<EventBusSubscriber>> subscribers = new HashMap<String, Set<EventBusSubscriber>>();
 	
 	@Override
 	public void emit(final Object event) {
@@ -76,7 +74,7 @@ public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 		}
 		catch (Throwable ex) {
 			// emit does not escalate anything, log stuff here for later inspection
-			log.log(Level.WARNING, "Unable to emit event ! "+event != null ? event.toString() : "null", ex);
+			log.log(Level.SEVERE, "Unable to emit event ! "+event != null ? event.toString() : "null", ex);
 		}
 	}
 	
@@ -104,31 +102,28 @@ public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 		}
 		catch (Throwable ex) {
 			// broadcast does not escalate anything, log stuff here for later inspection
-			log.log(Level.WARNING, "Unable to broadcast event !" + event != null ? event.toString() : "null", ex);
+			log.log(Level.SEVERE, "Unable to broadcast event !" + event != null ? event.toString() : "null", ex);
 			
 		}
 	}
 	
 	@Override
 	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-		// look for methods annotated with @PartitionEventSubscribe
+		// look for methods annotated with @PartitionEventSubscribe in raw beans
 		Method[] methods = bean.getClass().getDeclaredMethods();
 		if (methods != null) {
 			
 			Class<?>[] types;
-			String typeName;
-			MessageListener<Object> listener;
 			PartitionEventSubscribe pes;
 			
 			for (Method m : methods) {
 				pes = m.getAnnotation(PartitionEventSubscribe.class);
 				if (pes != null) {
 					// register new EventSubscriber
-					types = m.getParameterTypes();
-					if (types.length == 1) {
-						typeName = m.getParameterTypes()[0].getName();
-						subscribe(bean, m, typeName);
-					}
+					subscribe(	m.getName(), 
+								m.getParameterTypes(), 
+								beanName
+					);
 				}
 			}
 		}
@@ -137,23 +132,32 @@ public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 
 	@Override
 	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+		// some of the beans migh get proxied by now - need to replace raw instances with 
+		// appropriate proxies so other aop based stuff is working as expected
+		//
+		if (beans_index.containsKey(beanName)) {
+			for (EventBusSubscriber sub : beans_index.get(beanName)) {
+				sub.setTarget(bean);
+			}
+		}
 		return bean;
 	}
 
-	void subscribe(Object target, Method method, String eventClass) {
+	void subscribe(String handlerMethod, Class<?>[] handlerParams, String beanName) {
+		
+		String eventClass= handlerParams[0].getName();
 		
 		if (!this.subscribers.containsKey(eventClass)) {
-			synchronized(this) {
-				if (!this.subscribers.containsKey(eventClass)) {
-					this.subscribers.put(eventClass, new ConcurrentHashSet<MessageBusImpl.EventBusSubscriber>());
-				}
-			}
+			this.subscribers.put(eventClass, new HashSet<EventBusSubscriber>());
+		}
+		if (!this.beans_index.containsKey(beanName)) {
+			this.beans_index.put(beanName, new HashSet<EventBusSubscriber>());
 		}
 		
-		// save subscriber in multimap
-		this.subscribers.get(eventClass).add(
-				new EventBusSubscriber(target, method)
-		);
+		// save subscriber in multimaps
+		EventBusSubscriber sub = new EventBusSubscriber(handlerMethod, handlerParams);
+		this.subscribers.get(eventClass).add(sub);
+		this.beans_index.get(beanName).add(sub);
 	}
 	
 	protected Integer getPartitionKey(PartitionEvent pe, Object message) throws Throwable {
@@ -180,45 +184,55 @@ public class MessageBusImpl implements MessageBus, BeanPostProcessor {
 		this.hazelcast = hazelcast;
 	}
 	
-	public ConcurrentMap<String, Set<EventBusSubscriber>> getSubscribers() {
+	public Map<String, Set<EventBusSubscriber>> getSubscribers() {
 		return subscribers;
 	}
 
 	private static class EventBusSubscriber {
-		final Object target;
-		final Method method;
 		
-		public EventBusSubscriber(Object target, Method method) {
-			this.target = target;
-			this.method = method;
+		private Object target;
+		private Method method;
+		
+		private String     handlerMethod;
+		private Class<?>[] handlerParams;
+		
+		public EventBusSubscriber(String handlerMethod, Class<?>[] handlerParams) {
+			this.handlerMethod = handlerMethod;
+			this.handlerParams = handlerParams;
 		}
 		
 		public void call(Object message) {
 			try {
-				method.invoke(target, message);
+				switch(handlerParams.length) {
+					case 1 :{
+					// basic invocation
+							method.invoke(target, message);
+							break;
+					}
+					case 2 : {
+					// invocation with target proxy
+							method.invoke(target, message, target);
+							break;
+					}
+				}
 			}
 			catch (Exception ex) {
-				log.log(Level.WARNING, "Unable to execute "+method.toString()+" for message "+message != null ? message.toString() : "null", ex);
+				log.log(Level.SEVERE, "Unable to execute "+handlerMethod+" for message "+message != null ? message.toString() : "null", ex);
 			}
 		}
 		
-		private static final ILogger log = Logger.getLogger("jdk");
-	}
-	
-	/**
-	 * Forwards events from the topic onto localy registered subscribers
-	 *
-	 */
-	private class EventForwardingListener implements MessageListener<Object> {
-
-		@Override
-		public void onMessage(Message<Object> message) {
-			exe.submit(
-					new EventForwardingRunnable(
-										message.getMessageObject()	
-					)
-			);
+		public void setTarget(Object target) {
+			try {
+				this.target = target;
+				this.method = target.getClass().getMethod(handlerMethod, handlerParams);
+			}
+			catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to get event handler method !", ex);
+			}
+			
 		}
+		
+		private static final ILogger log = Logger.getLogger("jdk");
 	}
 	
 	/**

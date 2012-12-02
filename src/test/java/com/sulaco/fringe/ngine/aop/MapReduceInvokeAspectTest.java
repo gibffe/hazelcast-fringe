@@ -31,6 +31,7 @@ import com.hazelcast.core.Member;
 import com.hazelcast.partition.Partition;
 import com.hazelcast.partition.PartitionService;
 import com.sulaco.fringe.TestService;
+import com.sulaco.fringe.TestServiceImpl;
 import com.sulaco.fringe.annotation.PartitionMapReduce;
 import com.sulaco.fringe.ngine.FringeEvent;
 
@@ -125,6 +126,7 @@ public class MapReduceInvokeAspectTest {
 		ProceedingJoinPoint mockPjp = mock(ProceedingJoinPoint.class);
 		when(mockPjp.getStaticPart()).thenReturn(mockStaticPart);
 		when(mockPjp.getArgs()).thenReturn(args);
+		when(mockPjp.getTarget()).thenReturn(new TestServiceImpl());
 		// mock proceed(args) so it returns slice supplied
 		doAnswer(
 				new Answer<Object>() {

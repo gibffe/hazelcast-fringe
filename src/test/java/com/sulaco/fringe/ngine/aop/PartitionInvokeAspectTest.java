@@ -29,6 +29,7 @@ import com.hazelcast.core.Member;
 import com.hazelcast.partition.Partition;
 import com.hazelcast.partition.PartitionService;
 import com.sulaco.fringe.TestService;
+import com.sulaco.fringe.TestServiceImpl;
 import com.sulaco.fringe.annotation.PartitionInvoke;
 import com.sulaco.fringe.ngine.aop.PartitionInvokeAspect.PartitionKeyTrace;
 
@@ -91,10 +92,12 @@ public class PartitionInvokeAspectTest {
 	@Test
 	public void testGetPartitionKeyTrace() throws Throwable {
 		
-		Method method = Class.forName("com.sulaco.fringe.TestServiceImpl").getMethod("getAccount2", Integer.class, Integer.class, Integer.class);
+		TestService service = new TestServiceImpl();
+		
+		Method method = service.getClass().getMethod("getAccount2", Integer.class, Integer.class, Integer.class);
 		MethodSignature mockSignature = mockMethodSignature(method);
 		
-		PartitionKeyTrace trace = aspect.getPartitionKeyTrace(mockSignature);
+		PartitionKeyTrace trace = aspect.getPartitionKeyTrace(service, mockSignature);
 		assertNotNull(trace);
 		assertNotNull(trace.getPk());
 		assertEquals(1, trace.getPidx());
@@ -103,7 +106,7 @@ public class PartitionInvokeAspectTest {
 		method = Class.forName("com.sulaco.fringe.TestServiceImpl").getMethod("getAccount1", Integer.class);
 		mockSignature = mockMethodSignature(method);
 		
-		trace = aspect.getPartitionKeyTrace(mockSignature);
+		trace = aspect.getPartitionKeyTrace(service, mockSignature);
 		assertNotNull(trace);
 		assertNotNull(trace.getPk());
 		assertEquals(0, trace.getPidx());
@@ -140,6 +143,7 @@ public class PartitionInvokeAspectTest {
 		ProceedingJoinPoint mockPjp = mock(ProceedingJoinPoint.class);
 		when(mockPjp.getStaticPart()).thenReturn(mockStaticPart);
 		when(mockPjp.getArgs()).thenReturn(args);
+		when(mockPjp.getTarget()).thenReturn(new TestServiceImpl());
 		
 		return mockPjp;
 	}
